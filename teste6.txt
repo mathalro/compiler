@@ -1,24 +1,24 @@
 /**
-	*	Centro Federal de Educacao Tecnologica de Minas Gerais
-	*	Engenharia de Computacao
-	* Trabalho Pratico da disciplina de Compiladores
-	* 7º Periodo
-	* Higor Amorim - Matheus Rosa
-  **/
+* Centro Federal de Educacao Tecnologica de Minas Gerais
+* Engenharia de Computacao
+* Trabalho Pratico da disciplina de Compiladores
+* 7º Periodo
+* Higor Amorim - Matheus Rosa
+**/
 
 program
 	int a, b, c, d, n;
 	scan(n);
-	print(Programa de Teste");
+	print("Programa de Teste");
 	i = 0;
 
 	print("Teste do WHILE");
+	do 
+		i = i + 1;
 	while i < n
-		print(i);
 	end
-	@badtoken;
-	scan(a); scan(b); scan(c); scanf(d);
-	if ((a == b && b >= c && a <= d && b != d) | a == 0) then
+	scan(a); scan(b); scan(c); scan(d);
+	if a || b && c == d then
 		print("Teste do IF");
 	else
 		print("Teste do ELSE");

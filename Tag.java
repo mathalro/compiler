@@ -17,7 +17,7 @@ public class Tag {
 		OR = 269,
 		AND = 268,
 		NOT = 267,
-		EQ = 268,
+		EQ = 266,
 		GE = 270,
 		LE = 272,
 		NOTEQ = 273,

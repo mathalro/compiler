@@ -1,58 +1,79 @@
 import java.util.Scanner;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Sintatico {
 	public static Token token;
 	public static Lexer l;		
 
 	/* Implementacao dos Procedimentos necessarios para o parser */
-	// procedimento responsavel por ler o proximo token da entrada
-	public static void consome(int tag) {
-		try {
-			token = l.scan();
-			System.out.format("Status %15s      <Lexeme> %10s Line\n", "", "");
-			System.out.println("-----------------------------------------------");
 
-			if (token.tag == Tag.ERRO) {
-				System.out.format("Malformed Token     %15s %15d\n", token.toString(), l.line);
-			} else if (token.tag == Tag.INV) {
-				System.out.format("Invalid Token       %15s %15d\n", token.toString(), l.line);
-			} else if (token.tag == Tag.EOF) {
-				System.out.format("Lexical analysis finished\n");
-			} else if (token.tag == Tag.UEOF) {
-				System.out.format("Unexpected EOF\n");
-			} else if (token.tag == Tag.OTH) {
-				System.out.format("Other token\n");;
-			} else {
-				System.out.format("Consumed token      %15s %15d\n", token.toString(), l.line);
-			}
+	// procedimento responsavel por ler o proximo token da entrada
+	public static void getToken() {
+		try {
+			do {
+				token = l.scan();
+				System.out.format("\n");
+				System.out.println("-----------------------------------------------");
+
+				if (token.tag == Tag.ERRO) {
+					System.out.format("Malformed Token     %15s %15d\n", token.toString(), l.line);
+				} else if (token.tag == Tag.INV) {
+					System.out.format("Invalid Token       %15s %15d\n", token.toString(), l.line);
+				} else if (token.tag == Tag.EOF) {
+					System.out.format("Lexical analysis finished\n");
+				} else if (token.tag == Tag.UEOF) {
+					System.out.format("Unexpected EOF\n");
+				} else if (token.tag == Tag.OTH) {
+					System.out.format("Other token\n");;
+				} else {
+					System.out.format("Consumed token      %15s %15d\n", token.toString(), l.line);
+				}
+			} while (token.tag == Tag.OTH);
 		} catch(IOException e) {
 			System.out.format("Read error\n");
 		}
 	}
 
+	public static void debug(int tag) {
+		System.out.println(tag);
+	}
+
+	public static void error(ArrayList<String> tokens) {
+		System.out.print("Sintatical error - Expected tokens: ");
+		for (String it : tokens) System.out.print(it+". ");
+		System.out.print("Consumed: "+token.toString());
+		System.out.println();
+		System.exit(0);
+	}
+
+	public static void advance() {
+		getToken();
+	}
+
+	public static void eat(int t) {
+		if (token.tag == t) advance();
+		else System.out.println("Sintatical error: Not expected token "+ token.toString());
+	}
+
 	// procedimento inicial S, raiz da arvore de derivacao
 	public static void S() {
-		switch (token.tag) {
-			case Tag.PRG:
-				Program();
-				consome(Tag.EOF);
-				break;
-			default:
-				System.out.println("Expected program.");
-				// fazer a propagracao de erro aqui
-		}
+		Program();
+		eat(Tag.EOF);
 	}
 
 	// procedimento responsavel pelo tratamento do simbolo program
 	public static void Program() {
 		switch (token.tag) {
 			case Tag.PRG:
-				consome(Tag.PRG);
-				
+				eat(Tag.PRG);
+				OptDeclList();
+				StmtList();
+				eat(Tag.END);
 				break;
 			default:
-				System.out.println("Expected program.");
+				error(new ArrayList<>(Arrays.asList("PRG")));
 				// fazer propagacao de erro aqui
 		}
 	}
@@ -60,218 +81,574 @@ public class Sintatico {
 	// simbolo opt-decl-list
 	public static void OptDeclList() {
 		switch (token.tag) {
+			case Tag.INT:
+			case Tag.STR:
+				DeclList();
+				break;
+			case Tag.IF:
+			case Tag.DO:
+			case Tag.SC:
+			case Tag.PRT:
+			case Tag.ID:
+				break;
 			default:
-				System.out.println("Expected .");
+				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")));
 		}
 	}
 
 	// tratamento do simbolo decl-list
 	public static void DeclList() {
 		switch (token.tag) {
-			
+			case Tag.INT:
+			case Tag.STR:
+				Decl();
+				OptDecl();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("INT", "STR")));
 		}
 	}
 
 	// tratamento do simbolo opt-decl
 	public static void OptDecl() {
 		switch (token.tag) {
-			
+			// opt-delc -> decl opt-decl
+			case Tag.INT:
+			case Tag.STR:
+				Decl();
+				OptDecl();
+				break;
+			case Tag.IF:
+			case Tag.DO:
+			case Tag.SC:
+			case Tag.PRT:
+			case Tag.ID:
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")));
 		}
 	}
 
 	// tratamento do simbolo decl
 	public static void Decl() {
 		switch (token.tag) {
-			
+			// decl -> type ident-list ";"
+			case Tag.INT:
+			case Tag.STR:
+				Type();
+				IdentList();
+				eat(';');
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("INT", "STR")));
 		}
 	}
 
 	// tratamentodo simbolo idnet-list
 	public static void IdentList() {
 		switch (token.tag) {
-			
+			// ident-list -> id opt-id
+			case Tag.ID:
+				eat(Tag.ID);
+				OptIdentifier();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("ID")));
 		}
 	}
 
 	// tratamentodo simbolo opt-identifier
 	public static void OptIdentifier() {
 		switch (token.tag) {
-			
+			// opt-identifier -> , id opt-identifier
+			case ',':
+				eat(',');
+				eat(Tag.ID);
+				OptIdentifier();
+				break;
+			case ';':
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList(",", ";")));
 		}
 	}
 
 	// tratamento do simbolo type
 	public static void Type() {
 		switch (token.tag) {
-			
+			// type -> int
+			case Tag.INT:
+				eat(Tag.INT);
+				break;
+			// type -> str
+			case Tag.STR:
+				eat(Tag.STR);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("INT", "STR")));
 		}
 	}
 	
 	// tratamento do simbolo stmt-list
 	public static void StmtList() {
 		switch (token.tag) {
-			
+			// stmt-list -> stmt opt-stmt
+			case Tag.IF:
+			case Tag.DO:
+			case Tag.SC:
+			case Tag.PRT:
+			case Tag.ID:
+				Stmt();
+				OptStmt();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")));
 		}
 	}
 
 	// tratamento do simbolo opt-stmt
 	public static void OptStmt() {
 		switch (token.tag) {
-			
+			// opt-stmt -> stmt opt-stmt
+			case Tag.IF:
+			case Tag.DO:
+			case Tag.SC:
+			case Tag.PRT:
+			case Tag.ID:
+				Stmt();
+				OptStmt();
+				break;
+			// opt-stmt -> #
+			case Tag.END:
+			case Tag.ELSE:
+			case Tag.WH:
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID", "END", "WH")));
 		}
 	}
 
 	// tratamento do simbolo stmt
 	public static void Stmt() {
 		switch (token.tag) {
-			
+			case Tag.IF:		// stmt -> assign-stmt
+				IfStmt();			
+				break;
+			case Tag.DO:		// stmt -> if-stmt
+				WhileStmt();
+				break;
+			case Tag.SC:		// stmt -> read-stmt
+				ReadStmt();
+				eat(';');
+				break;
+			case Tag.PRT:
+				WriteStmt(); 	// stmt -> write-stmt
+				eat(';');
+				break;
+			case Tag.ID:	 	// stmt -> assign-stmt 
+				AssignStmt();
+				eat(';');
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")));
 		}
 	}
 
 	// tratamento do simbolo assign-stmt
 	public static void AssignStmt() {
 		switch (token.tag) {
-			
+			// assign-stmt -> id = simple-expr
+			case Tag.ID:
+				eat(Tag.ID);
+				eat('=');
+				SimpleExpr();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("ID")));
 		}
 	}
 
 	// tratamento do simbolo if-stmt
 	public static void IfStmt() {
 		switch (token.tag) {
-			
+			// if-stmt -> if condition then stmt-list if-stmt2
+			case Tag.IF:
+				eat(Tag.IF);
+				Condition();
+				eat(Tag.THEN);
+				StmtList();
+				IfStmt2();
+				break;	
+			default:
+				error(new ArrayList<>(Arrays.asList("IF")));
 		}
 	}
 
 	// tratamento do simbolo if-stmt-2
 	public static void IfStmt2() {
 		switch (token.tag) {
-			
+			// if-stmt2 -> end
+			case Tag.END:
+				eat(Tag.END);
+				break;
+			// if-stmt2 -> else stmt-list end
+			case Tag.ELSE:
+				eat(Tag.ELSE);
+				StmtList();
+				eat(Tag.END);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("END", "ELSE")));
 		}
 	}
 
 	// simbolo condiion
 	public static void Condition() {
 		switch (token.tag) {
-			
+			// condition -> expression
+			case Tag.NOT:
+			case Tag.NUM:
+			case Tag.STRING:
+			case Tag.ID:
+			case '-':
+			case '(':
+				Expression();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "STRING", "ID", "-", "(")));
 		}
 	}
 
 	// simbolo while-stmt
 	public static void WhileStmt() {
 		switch (token.tag) {
-			
+			// while-stmt -> do stmt-list stmt-sufix
+			case Tag.DO:
+				eat(Tag.DO);
+				StmtList();
+				StmtSufix();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("DO")));
 		}
 	}
 
 	// simbolo stmt-sufix
 	public static void StmtSufix() {
 		switch (token.tag) {
-			
+			// stmt-sufix -> while condition end
+			case Tag.WH:
+				eat(Tag.WH);
+				Condition();
+				eat(Tag.END);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("WH")));
 		}
 	}
 
 	// simbolo read-stmt
 	public static void ReadStmt() {
 		switch (token.tag) {
-			
+			// read-stmt -> scan "(" identifier ")"
+			case Tag.SC:
+				eat(Tag.SC);
+				eat('(');
+				eat(Tag.ID);
+				eat(')');
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("SC")));
 		}
 	}
 
 	// simbolo write-stmt
 	public static void WriteStmt() {
 		switch (token.tag) {
-			
+			// write-stmt -> print "(" writable ")"
+			case Tag.PRT:
+				eat(Tag.PRT);
+				eat('(');
+				Writable();
+				eat(')');
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("PRT")));
 		}
 	}
 
 	// simbolo writable
 	public static void Writable() {
 		switch (token.tag) {
-			
+			// writable -> simple-expr
+			case Tag.NOT:
+			case Tag.NUM:
+			case Tag.ID:
+			case '-':
+			case '(':
+				SimpleExpr();
+				break;
+			case Tag.STRING:
+				eat(Tag.STRING);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));
 		}
 	}
 
 	// simbolo expression
 	public static void Expression() {
 		switch (token.tag) {
-			
+			// expression -> simple-expression expression2
+			case Tag.NOT:
+			case Tag.NUM:
+			case Tag.ID:
+			case '-':
+			case '(':
+			case Tag.STRING:
+				SimpleExpr();
+				Expression2();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));			
 		}
 	}
 
 	// simbolo expression2
 	public static void Expression2() {
 		switch (token.tag) {
-			
+			// expression2 -> relop simple-expr
+			case Tag.EQ:
+			case Tag.GE:
+			case Tag.LE:
+			case Tag.NOTEQ:
+			case '>':
+			case '<':
+				Relop();
+				SimpleExpr();
+				break;
+			// expressio2 -> #
+			case ')':
+			case Tag.END:
+			case Tag.THEN:
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<", ")", "END", "THEN")));
 		}
 	}
 
 	// simbolo simple-expr
 	public static void SimpleExpr() {
+		// simple-expr -> temr simple-expr2
 		switch (token.tag) {
-			
+			case Tag.NOT:
+			case Tag.NUM:
+			case Tag.ID:
+			case '-':
+			case '(':
+			case Tag.STRING:
+				Term();
+				SimpleExpr2();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));			
 		}
 	}
 
 	// simbolo simple-expr2
-	public static void SimpleExpre2() {
+	public static void SimpleExpr2() {
 		switch (token.tag) {
-			
+			// simple-expr2 -> addop term simple-expr2
+			case '+':
+			case '-':
+			case Tag.OR:
+				Addop();
+				Term();
+				SimpleExpr2();
+			// simple-expr2 -> #
+			case Tag.END:
+			case Tag.THEN:
+			case Tag.EQ:
+			case Tag.GE:
+			case Tag.LE:
+			case Tag.NOTEQ:
+			case '>':
+			case '<':
+			case ')':
+			case ';':
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("+", "-", "END", "THEN", "EQ", "GE", "LE", "NOTEQ", "<", ">", ")", ";")));
 		}
 	}
 
 	// simbolo term
 	public static void Term() {
 		switch (token.tag) {
-			
+			// term -> 	factor-a term2
+			case Tag.NOT:
+			case Tag.NUM:
+			case Tag.ID:
+			case Tag.STRING:
+			case '(':
+			case '-':
+				FactorA();
+				Term2();
+				break;	
+			default:
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "STRING", "(", "-")));
 		}
 	}
 
 	// simbolo term2
 	public static void Term2() {
 		switch (token.tag) {
-			
+			// term2 -> mulop factor-a term2
+			case Tag.AND:
+			case '*':
+			case '/':
+				Mulop();
+				FactorA();
+				Term2();
+				break;
+			case Tag.END:
+			case Tag.THEN:
+			case Tag.OR:
+			case Tag.EQ:
+			case Tag.GE:
+			case Tag.LE:
+			case Tag.NOTEQ:
+			case '-':
+			case '>':
+			case '<':
+			case '+':
+			case ')':
+			case ';':
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("AND", "*", "/", "END", "THEN", "OR", "EQ", "GE", "LE", "NOTEQ", "-", "+", ">", "<", ")", ";", "/", ")", ";")));
 		}
 	}
 
 	// simbolo factor-a
 	public static void FactorA() {
 		switch (token.tag) {
-			
+			// factor-a -> factor
+			case Tag.NUM:
+			case Tag.ID:
+			case Tag.STRING:
+			case '(':
+				Factor();
+				break;
+			// factor-a -> ! factor
+			case Tag.NOT:
+				eat(Tag.NOT);
+				Factor();
+				break;
+			// factor-a -: - factor
+			case '-':
+				eat('-');
+				Factor();
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("NUM", "ID", "STRING", "NOT", "-")));
 		}
 	}
 
 	// simbolo factor
 	public static void Factor() {
 		switch (token.tag) {
-			
+			// factor -> id
+			case Tag.ID:
+				eat(Tag.ID);
+				break;
+			// factor -> constant
+			case Tag.NUM:
+			case Tag.STRING:
+				Constant();
+				break;
+			// factor -> "(" expression ")"
+			case '(':
+				eat('(');
+				Expression();
+				eat(')');
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("ID", "NUM", "STRING", "(")));
 		}
 	}
 
 	// simbolo relop
 	public static void Relop() {
 		switch (token.tag) {
-			
+			case Tag.EQ:
+				eat(Tag.EQ);
+				break;
+			case '>':
+				eat('>');
+				break;
+			case Tag.GE:
+				eat(Tag.GE);
+				break;
+			case '<':
+				eat('<');
+				break;
+			case Tag.LE:
+				eat(Tag.LE);
+				break;
+			case Tag.NOTEQ:
+				eat(Tag.NOTEQ);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<")));
 		}
 	}
 
 	// simbolo addop
 	public static void Addop() {
 		switch (token.tag) {
-			
+			case '+':
+				eat('+');
+				break;
+			case '-':
+				eat('-');
+				break;
+			case Tag.OR:
+				eat(Tag.OR);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("+", "-", "OR")));
 		}
 	}
 
 	// simbolo mulop
 	public static void Mulop() {
 		switch (token.tag) {
-			
+			case '*':
+				eat('*');
+				break;
+			case '/':
+				eat('/');
+				break;
+			case Tag.AND:
+				eat(Tag.AND);
+				break;
+			default:
+				error(new ArrayList<>(Arrays.asList("*", "/", "AND")));
 		}
 	}
 
 	// simbolo constant
 	public static void Constant() {
 		switch (token.tag) {
-			
+			case Tag.NUM:
+				eat(Tag.NUM);
+				break;
+			case Tag.STRING:
+				eat(Tag.STRING);
+				break;	
+			default:
+				error(new ArrayList<>(Arrays.asList("NUM", "STRING")));
 		}
 	}
 
@@ -286,8 +663,9 @@ public class Sintatico {
 
 		filename = args[0];	
 		try {
-			
+					
 			l = new Lexer(filename);
+			getToken();
 			S();
 	
 			System.out.println("\n\nSymbol Table: \n");
