@@ -78,8 +78,7 @@ public class Follow {
 	}
 
 	boolean isFollow(int nonterminal, int token) {
-		List<Integer> aux = new ArrayList<Integer>();
-		aux = map.get(nonterminal);
+		List<int> aux = map.get(nonterminal);
 		return aux.contains(token);
 	}
 }
