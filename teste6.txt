@@ -9,7 +9,7 @@
 program
 	int a, b, c, d, n;
 	scan(n);
-	print("Programa de Teste");
+	print(Programa de Teste");
 	i = 0;
 
 	print("Teste do WHILE");
@@ -18,7 +18,7 @@ program
 	while i < n
 	end
 	scan(a); scan(b); scan(c); scan(d);
-	if a || b && c == d then
+	if (a || b && c == d then
 		print("Teste do IF");
 	else
 		print("Teste do ELSE");

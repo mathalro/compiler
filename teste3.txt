@@ -21,7 +21,4 @@ program
 			print(“Candidato reprovado”)
 		end
 	while (pontuação >= 0)end
-
-	@
 end
-

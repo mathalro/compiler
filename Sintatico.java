@@ -6,7 +6,7 @@ import java.util.Arrays;
 public class Sintatico {
 	public static Token token;
 	public static Lexer l;		
-
+	public static Follow f;
 	/* Implementacao dos Procedimentos necessarios para o parser */
 
 	// procedimento responsavel por ler o proximo token da entrada
@@ -14,21 +14,20 @@ public class Sintatico {
 		try {
 			do {
 				token = l.scan();
-				System.out.format("\n");
-				System.out.println("-----------------------------------------------");
+				//System.out.println("--------------------------------------------------------------");
 
 				if (token.tag == Tag.ERRO) {
-					System.out.format("Malformed Token     %15s %15d\n", token.toString(), l.line);
+					//System.out.format("Malformed Token     %15s %15s line %d\n", token.toString(), "", 	l.line);
 				} else if (token.tag == Tag.INV) {
-					System.out.format("Invalid Token       %15s %15d\n", token.toString(), l.line);
+					//System.out.format("Invalid Token       %15s line %15d\n", token.toString(), l.line);
 				} else if (token.tag == Tag.EOF) {
-					System.out.format("Lexical analysis finished\n");
+					//System.out.format("Lexical analysis finished\n");
 				} else if (token.tag == Tag.UEOF) {
-					System.out.format("Unexpected EOF\n");
+					//System.out.format("Unexpected EOF\n");
 				} else if (token.tag == Tag.OTH) {
-					System.out.format("Other token\n");;
+					//System.out.format("Other token\n");;
 				} else {
-					System.out.format("Consumed token      %15s %15d\n", token.toString(), l.line);
+					//System.out.format("Consumed token      %15s %15s line %d\n", token.toString(), "", l.line);
 				}
 			} while (token.tag == Tag.OTH);
 		} catch(IOException e) {
@@ -40,12 +39,17 @@ public class Sintatico {
 		System.out.println(tag);
 	}
 
-	public static void error(ArrayList<String> tokens) {
-		System.out.print("Sintatical error - Expected tokens: ");
-		for (String it : tokens) System.out.print(it+". ");
-		System.out.print("Consumed: "+token.toString());
+	public static void error(ArrayList<String> tokens, int nonterminal) {
+		System.out.println("--------------------------------------------------------------");
+		System.out.format("Linha %d\n", l.line);
+		System.out.print("Syntactical error - Expected tokens: ");
+		for (String it : tokens) System.out.print("\""+it+"\""+", ");
+		System.out.print("Consumed: \""+token.toString()+"\"");
 		System.out.println();
-		System.exit(0);
+		// error recovery
+		while (!f.isFollow(nonterminal, token.tag) && token.tag != Tag.EOF) {
+			advance();
+		}
 	}
 
 	public static void advance() {
@@ -54,7 +58,11 @@ public class Sintatico {
 
 	public static void eat(int t) {
 		if (token.tag == t) advance();
-		else System.out.println("Sintatical error: Not expected token "+ token.toString());
+		else {
+			System.out.println("--------------------------------------------------------------");
+			System.out.format("Linha %d\n", l.line);
+			System.out.println("Syntactical error: Not expected token \""+ token.toString()+"\"");
+		}
 	}
 
 	// procedimento inicial S, raiz da arvore de derivacao
@@ -73,7 +81,7 @@ public class Sintatico {
 				eat(Tag.END);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("PRG")));
+				error(new ArrayList<>(Arrays.asList("PRG")), f.program);
 				// fazer propagacao de erro aqui
 		}
 	}
@@ -92,7 +100,7 @@ public class Sintatico {
 			case Tag.ID:
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")));
+				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDeclList);
 		}
 	}
 
@@ -105,7 +113,7 @@ public class Sintatico {
 				OptDecl();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("INT", "STR")));
+				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.declList);
 		}
 	}
 
@@ -125,7 +133,7 @@ public class Sintatico {
 			case Tag.ID:
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")));
+				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDecl);
 		}
 	}
 
@@ -140,7 +148,7 @@ public class Sintatico {
 				eat(';');
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("INT", "STR")));
+				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.decl);
 		}
 	}
 
@@ -153,7 +161,7 @@ public class Sintatico {
 				OptIdentifier();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("ID")));
+				error(new ArrayList<>(Arrays.asList("ID")), f.identList);
 		}
 	}
 
@@ -169,7 +177,7 @@ public class Sintatico {
 			case ';':
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList(",", ";")));
+				error(new ArrayList<>(Arrays.asList(",", ";")), f.optIdentifier);
 		}
 	}
 
@@ -185,7 +193,7 @@ public class Sintatico {
 				eat(Tag.STR);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("INT", "STR")));
+				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.type);
 		}
 	}
 	
@@ -202,7 +210,7 @@ public class Sintatico {
 				OptStmt();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")));
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmtList);
 		}
 	}
 
@@ -224,7 +232,7 @@ public class Sintatico {
 			case Tag.WH:
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID", "END", "WH")));
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID", "END", "WH")), f.optStmt);
 		}
 	}
 
@@ -250,7 +258,7 @@ public class Sintatico {
 				eat(';');
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")));
+				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmt);
 		}
 	}
 
@@ -264,7 +272,7 @@ public class Sintatico {
 				SimpleExpr();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("ID")));
+				error(new ArrayList<>(Arrays.asList("ID")), f.assignStmt);
 		}
 	}
 
@@ -280,7 +288,7 @@ public class Sintatico {
 				IfStmt2();
 				break;	
 			default:
-				error(new ArrayList<>(Arrays.asList("IF")));
+				error(new ArrayList<>(Arrays.asList("IF")), f.ifStmt);
 		}
 	}
 
@@ -298,7 +306,7 @@ public class Sintatico {
 				eat(Tag.END);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("END", "ELSE")));
+				error(new ArrayList<>(Arrays.asList("END", "ELSE")), f.ifStmt2);
 		}
 	}
 
@@ -315,7 +323,7 @@ public class Sintatico {
 				Expression();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "STRING", "ID", "-", "(")));
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "STRING", "ID", "-", "(")), f.condition);
 		}
 	}
 
@@ -329,7 +337,7 @@ public class Sintatico {
 				StmtSufix();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("DO")));
+				error(new ArrayList<>(Arrays.asList("DO")), f.whileStmt);
 		}
 	}
 
@@ -343,7 +351,7 @@ public class Sintatico {
 				eat(Tag.END);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("WH")));
+				error(new ArrayList<>(Arrays.asList("WH")), f.stmtSufix);
 		}
 	}
 
@@ -358,7 +366,7 @@ public class Sintatico {
 				eat(')');
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("SC")));
+				error(new ArrayList<>(Arrays.asList("SC")), f.readStmt);
 		}
 	}
 
@@ -373,7 +381,7 @@ public class Sintatico {
 				eat(')');
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("PRT")));
+				error(new ArrayList<>(Arrays.asList("PRT")), f.writeStmt);
 		}
 	}
 
@@ -392,7 +400,7 @@ public class Sintatico {
 				eat(Tag.STRING);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.writable);
 		}
 	}
 
@@ -410,7 +418,7 @@ public class Sintatico {
 				Expression2();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));			
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.expression);			
 		}
 	}
 
@@ -433,7 +441,7 @@ public class Sintatico {
 			case Tag.THEN:
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<", ")", "END", "THEN")));
+				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<", ")", "END", "THEN")), f.expression2);
 		}
 	}
 
@@ -451,7 +459,7 @@ public class Sintatico {
 				SimpleExpr2();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")));			
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.simpleExpr);			
 		}
 	}
 
@@ -478,7 +486,7 @@ public class Sintatico {
 			case ';':
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("+", "-", "END", "THEN", "EQ", "GE", "LE", "NOTEQ", "<", ">", ")", ";")));
+				error(new ArrayList<>(Arrays.asList("+", "-", "END", "THEN", "EQ", "GE", "LE", "NOTEQ", "<", ">", ")", ";")), f.simpleExpr2);
 		}
 	}
 
@@ -496,7 +504,7 @@ public class Sintatico {
 				Term2();
 				break;	
 			default:
-				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "STRING", "(", "-")));
+				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "STRING", "(", "-")), f.term);
 		}
 	}
 
@@ -526,7 +534,7 @@ public class Sintatico {
 			case ';':
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("AND", "*", "/", "END", "THEN", "OR", "EQ", "GE", "LE", "NOTEQ", "-", "+", ">", "<", ")", ";", "/", ")", ";")));
+				error(new ArrayList<>(Arrays.asList("AND", "*", "/", "END", "THEN", "OR", "EQ", "GE", "LE", "NOTEQ", "-", "+", ">", "<", ")", ";", "/", ")", ";")), f.term2);
 		}
 	}
 
@@ -551,7 +559,7 @@ public class Sintatico {
 				Factor();
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("NUM", "ID", "STRING", "NOT", "-")));
+				error(new ArrayList<>(Arrays.asList("NUM", "ID", "STRING", "NOT", "-")), f.factorA);
 		}
 	}
 
@@ -574,7 +582,7 @@ public class Sintatico {
 				eat(')');
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("ID", "NUM", "STRING", "(")));
+				error(new ArrayList<>(Arrays.asList("ID", "NUM", "STRING", "(")), f.factor);
 		}
 	}
 
@@ -600,7 +608,7 @@ public class Sintatico {
 				eat(Tag.NOTEQ);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<")));
+				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<")), f.relop);
 		}
 	}
 
@@ -617,7 +625,7 @@ public class Sintatico {
 				eat(Tag.OR);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("+", "-", "OR")));
+				error(new ArrayList<>(Arrays.asList("+", "-", "OR")), f.addop);
 		}
 	}
 
@@ -634,7 +642,7 @@ public class Sintatico {
 				eat(Tag.AND);
 				break;
 			default:
-				error(new ArrayList<>(Arrays.asList("*", "/", "AND")));
+				error(new ArrayList<>(Arrays.asList("*", "/", "AND")), f.mulop);
 		}
 	}
 
@@ -648,7 +656,7 @@ public class Sintatico {
 				eat(Tag.STRING);
 				break;	
 			default:
-				error(new ArrayList<>(Arrays.asList("NUM", "STRING")));
+				error(new ArrayList<>(Arrays.asList("NUM", "STRING")), f.constant);
 		}
 	}
 
@@ -665,12 +673,15 @@ public class Sintatico {
 		try {
 					
 			l = new Lexer(filename);
+			f = new Follow();
 			getToken();
 			S();
-	
-			System.out.println("\n\nSymbol Table: \n");
+			System.out.println("--------------------------------------------------------------");
+			System.out.format("Sintatical analysis finished\n");
+
+			/*System.out.println("\n\nSymbol Table: \n");
 			l.printTable();
-			System.out.println();
+			System.out.println();*/
 		}catch(FileNotFoundException e) {
 			System.out.format("An exception ocurred");
 		}
