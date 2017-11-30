@@ -86,9 +86,14 @@ public class Sintatico {
 
 	// procedimento inicial S, raiz da arvore de derivacao
 	public static void S() {
-		int type = Program();
-		if (type != Type.EMPTY) semanticError();
-		eat(Tag.EOF);
+		try {
+			int type = Program();
+			if (type != Type.EMPTY) semanticError();
+			eat(Tag.EOF);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			System.out.println("Exceção: "+ token.toString());
+		}
 	}
 
 	// procedimento responsavel pelo tratamento do simbolo program
@@ -185,6 +190,7 @@ public class Sintatico {
 	// tratamentodo simbolo idnet-list
 	public static ArrayList<String> IdentList() {
 		ArrayList<String> idList = new ArrayList<String>();
+		System.out.println("IdentList");
 		switch (token.tag) {
 			// ident-list -> id opt-id
 			case Tag.ID:
@@ -201,12 +207,13 @@ public class Sintatico {
 	// tratamentodo simbolo opt-identifier
 	public static ArrayList<String> OptIdentifier() {
 		ArrayList<String> idList = new ArrayList<String>();
+		System.out.println("OptIdentifier");
 		switch (token.tag) {
 			// opt-identifier -> , id opt-identifier
 			case ',':
 				eat(',');
-				eat(Tag.ID);
 				idList.add(((Word)token).getLexeme());
+				eat(Tag.ID);
 				idList.addAll(OptIdentifier());
 				break;
 			case ';':
@@ -311,12 +318,14 @@ public class Sintatico {
 	// tratamento do simbolo assign-stmt
 	public static int AssignStmt() {
 		int type = Type.EMPTY;
+		Token aux;
 		switch (token.tag) {
 			// assign-stmt -> id = simple-expr
 			case Tag.ID:
+				aux = token;
 				eat(Tag.ID);
 				eat('=');
-				type = Type.and(SimpleExpr(),getType(((Word)token).getLexeme()));
+				type = Type.and(SimpleExpr(),getType(((Word)aux).getLexeme()));
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.assignStmt);
