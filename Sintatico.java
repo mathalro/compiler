@@ -71,8 +71,17 @@ public class Sintatico {
 
 	// metodo responsavel pela inclusao dos tipos de uma lista
 	// identificadores na tabela de simbolos
-	void includeType(int type, ArrayList<> idents) {
-		// 
+	public static void includeType(int type, ArrayList<String> idents) {
+		for(String s : idents){
+			Word w = l.words.get(s);
+			w.setType(type);
+			l.words.put(s,w);
+		} 
+	}
+
+	// retorna o tipo de um identificador
+	public static int getType(String lexema){
+		return l.words.get(lexema).getType();
 	}
 
 	// procedimento inicial S, raiz da arvore de derivacao
@@ -174,40 +183,42 @@ public class Sintatico {
 	}
 
 	// tratamentodo simbolo idnet-list
-	public static int IdentList() {
-		int type = Type.EMPTY;
+	public static ArrayList<String> IdentList() {
+		ArrayList<String> idList = new ArrayList<String>();
 		switch (token.tag) {
 			// ident-list -> id opt-id
 			case Tag.ID:
+				idList.add(((Word)token).getLexeme());
 				eat(Tag.ID);
-				type = Type.and(OptIdentifier(), type);
+				idList.addAll(OptIdentifier());
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.identList);
 		}
-		return type;
+		return idList;
 	}
 
 	// tratamentodo simbolo opt-identifier
-	public static int OptIdentifier() {
-		int type = Type.EMPTY;
+	public static ArrayList<String> OptIdentifier() {
+		ArrayList<String> idList = new ArrayList<String>();
 		switch (token.tag) {
 			// opt-identifier -> , id opt-identifier
 			case ',':
 				eat(',');
 				eat(Tag.ID);
-				type = Type.and(OptIdentifier(), type);
+				idList.add(((Word)token).getLexeme());
+				idList.addAll(OptIdentifier());
 				break;
 			case ';':
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList(",", ";")), f.optIdentifier);
 		}
-		return type;
+		return idList;
 	}
 
 	// tratamento do simbolo type
-	public static void Type() {
+	public static int Type() {
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// type -> int
@@ -236,8 +247,8 @@ public class Sintatico {
 			case Tag.SC:
 			case Tag.PRT:
 			case Tag.ID:
-				Stmt();
-				OptStmt();
+				type = Type.and(Stmt(),type);
+				type = Type.and(OptStmt(),type);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmtList);
@@ -246,7 +257,8 @@ public class Sintatico {
 	}
 
 	// tratamento do simbolo opt-stmt
-	public static void OptStmt() {
+	public static int OptStmt() {
+		int type = Type.EMPTY;  
 		switch (token.tag) {
 			// opt-stmt -> stmt opt-stmt
 			case Tag.IF:
@@ -254,8 +266,8 @@ public class Sintatico {
 			case Tag.SC:
 			case Tag.PRT:
 			case Tag.ID:
-				Stmt();
-				OptStmt();
+				type = Type.and(Stmt(),type);
+				type = Type.and(OptStmt(),type);
 				break;
 			// opt-stmt -> #
 			case Tag.END:
@@ -265,66 +277,77 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID", "END", "WH")), f.optStmt);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo stmt
-	public static void Stmt() {
+	public static int Stmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.IF:		// stmt -> assign-stmt
-				IfStmt();			
+				type = Type.and(IfStmt(),type);			
 				break;
 			case Tag.DO:		// stmt -> if-stmt
-				WhileStmt();
+				type = Type.and(WhileStmt(),type);
 				break;
 			case Tag.SC:		// stmt -> read-stmt
-				ReadStmt();
+				type = Type.and(ReadStmt(),type);
 				eat(';');
 				break;
 			case Tag.PRT:
-				WriteStmt(); 	// stmt -> write-stmt
+				type = Type.and(WriteStmt(),type); 	// stmt -> write-stmt
 				eat(';');
 				break;
 			case Tag.ID:	 	// stmt -> assign-stmt 
-				AssignStmt();
+				type = Type.and(AssignStmt(),type);
 				eat(';');
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmt);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo assign-stmt
-	public static void AssignStmt() {
+	public static int AssignStmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// assign-stmt -> id = simple-expr
 			case Tag.ID:
 				eat(Tag.ID);
 				eat('=');
-				SimpleExpr();
+				type = Type.and(SimpleExpr(),getType(((Word)token).getLexeme()));
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.assignStmt);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo if-stmt
-	public static void IfStmt() {
+	public static int IfStmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// if-stmt -> if condition then stmt-list if-stmt2
 			case Tag.IF:
 				eat(Tag.IF);
-				Condition();
+				type = Condition();
 				eat(Tag.THEN);
-				StmtList();
-				IfStmt2();
+				if(type == Type.BOOLEAN){
+					type = Type.and(StmtList(),IfStmt2());	
+				}else{
+					type = Type.ERROR;
+				}
 				break;	
 			default:
 				error(new ArrayList<>(Arrays.asList("IF")), f.ifStmt);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo if-stmt-2
-	public static void IfStmt2() {
+	public static int IfStmt2() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// if-stmt2 -> end
 			case Tag.END:
@@ -333,16 +356,18 @@ public class Sintatico {
 			// if-stmt2 -> else stmt-list end
 			case Tag.ELSE:
 				eat(Tag.ELSE);
-				StmtList();
+				type = Type.and(StmtList(),type);
 				eat(Tag.END);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("END", "ELSE")), f.ifStmt2);
 		}
+		return type;
 	}
 
 	// simbolo condiion
-	public static void Condition() {
+	public static int Condition() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// condition -> expression
 			case Tag.NOT:
@@ -351,43 +376,49 @@ public class Sintatico {
 			case Tag.ID:
 			case '-':
 			case '(':
-				Expression();
+				type = Type.and(Expression(),Type.BOOLEAN);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "STRING", "ID", "-", "(")), f.condition);
 		}
+		return type;
 	}
 
 	// simbolo while-stmt
-	public static void WhileStmt() {
+	public static int WhileStmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// while-stmt -> do stmt-list stmt-sufix
 			case Tag.DO:
 				eat(Tag.DO);
-				StmtList();
-				StmtSufix();
+				type = Type.and(StmtList(),StmtSufix());
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("DO")), f.whileStmt);
 		}
+		return type;
 	}
 
 	// simbolo stmt-sufix
-	public static void StmtSufix() {
+	public static int StmtSufix() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// stmt-sufix -> while condition end
 			case Tag.WH:
 				eat(Tag.WH);
-				Condition();
+				if (Condition() == Type.BOOLEAN) type = Type.EMPTY;
+				else type = Type.ERROR;
 				eat(Tag.END);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("WH")), f.stmtSufix);
 		}
+		return type;
 	}
 
 	// simbolo read-stmt
-	public static void ReadStmt() {
+	public static int ReadStmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// read-stmt -> scan "(" identifier ")"
 			case Tag.SC:
@@ -399,25 +430,29 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("SC")), f.readStmt);
 		}
+		return type;
 	}
 
 	// simbolo write-stmt
-	public static void WriteStmt() {
+	public static int WriteStmt() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// write-stmt -> print "(" writable ")"
 			case Tag.PRT:
 				eat(Tag.PRT);
 				eat('(');
-				Writable();
+				type = Type.and(Writable(), Type.EMPTY);
 				eat(')');
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("PRT")), f.writeStmt);
 		}
+		return type;
 	}
 
 	// simbolo writable
-	public static void Writable() {
+	public static int Writable() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// writable -> simple-expr
 			case Tag.NOT:
@@ -425,7 +460,7 @@ public class Sintatico {
 			case Tag.ID:
 			case '-':
 			case '(':
-				SimpleExpr();
+				if (SimpleExpr() == Type.ERROR) type = Type.ERROR;
 				break;
 			case Tag.STRING:
 				eat(Tag.STRING);
@@ -433,10 +468,12 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.writable);
 		}
+		return type;
 	}
 
 	// simbolo expression
-	public static void Expression() {
+	public static int Expression() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// expression -> simple-expression expression2
 			case Tag.NOT:
@@ -445,16 +482,23 @@ public class Sintatico {
 			case '-':
 			case '(':
 			case Tag.STRING:
-				SimpleExpr();
-				Expression2();
+				int typeSimple = SimpleExpr();
+				int typeExpression = Expression2();
+
+				if (typeExpression == Type.EMPTY) type = typeSimple;
+				else if (typeSimple == Type.ERROR || typeExpression == Type.ERROR) type = Type.ERROR;
+				else type = Type.BOOLEAN;
+
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.expression);			
 		}
+		return type;
 	}
 
 	// simbolo expression2
-	public static void Expression2() {
+	public static int Expression2() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// expression2 -> relop simple-expr
 			case Tag.EQ:
@@ -463,8 +507,12 @@ public class Sintatico {
 			case Tag.NOTEQ:
 			case '>':
 			case '<':
-				Relop();
-				SimpleExpr();
+				int typeRelop = Relop();
+				int typeSimple = SimpleExpr();
+				
+				if (typeSimple != Type.EMPTY && typeRelop == Type.EMPTY) type = Type.EMPTY;
+				else type = Type.ERROR;
+				
 				break;
 			// expressio2 -> #
 			case ')':
@@ -474,10 +522,12 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<", ")", "END", "THEN")), f.expression2);
 		}
+		return type;
 	}
 
 	// simbolo simple-expr
-	public static void SimpleExpr() {
+	public static int SimpleExpr() {
+		int type = Type.EMPTY;
 		// simple-expr -> temr simple-expr2
 		switch (token.tag) {
 			case Tag.NOT:
@@ -486,24 +536,76 @@ public class Sintatico {
 			case '-':
 			case '(':
 			case Tag.STRING:
-				Term();
-				SimpleExpr2();
+
+				int typeTerm = Term();
+				int typeSimple = SimpleExpr2();
+				if (typeSimple == Type.EMPTY) {
+					type = typeTerm;
+				} else if (typeTerm == Type.INTEGER) {
+					if (typeSimple == Type.INTEGER) {
+						type = Type.INTEGER;
+					} else if (typeSimple == Type.BOOLEAN) {
+						type = Type.BOOLEAN;
+					} else {
+						type = Type.ERROR;
+					}
+				} else if (typeTerm == Type.STRING && typeSimple == Type.STRING) {
+					type = Type.STRING;
+				} else if (typeTerm == Type.BOOLEAN) {
+					if (typeSimple == Type.BOOLEAN || typeSimple == Type.INTEGER) {
+						type = Type.BOOLEAN;
+					} else {
+						type = Type.ERROR;
+					}
+				} else {
+					type = Type.ERROR;
+				}
+
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.simpleExpr);			
 		}
+		return type;
 	}
 
 	// simbolo simple-expr2
-	public static void SimpleExpr2() {
+	public static int SimpleExpr2() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// simple-expr2 -> addop term simple-expr2
 			case '+':
 			case '-':
 			case Tag.OR:
-				Addop();
-				Term();
-				SimpleExpr2();
+				int typeAdd = Addop();
+				int typeTerm = Term();
+				int typeSimple = SimpleExpr2();
+	
+				if (typeAdd == Type.EMPTY) {
+					if (typeSimple == Type.EMPTY) {
+						type = typeTerm;
+					} else if (typeTerm == Type.INTEGER) {
+						if (typeSimple == Type.INTEGER) {
+							type = Type.INTEGER;
+						} else if (typeSimple == Type.BOOLEAN) {
+							type = Type.BOOLEAN;
+						} else {
+							type = Type.ERROR;
+						}
+					} else if (typeTerm == Type.STRING && typeSimple == Type.STRING) {
+						type = Type.STRING;
+					} else if (typeTerm == Type.BOOLEAN) {
+						if (typeSimple == Type.BOOLEAN || typeSimple == Type.INTEGER) {
+							type = Type.BOOLEAN;
+						} else {
+							type = Type.ERROR;
+						}
+					} else {
+						type = Type.ERROR;
+					}
+				} else {
+					type = Type.ERROR;
+				}
+				break;
 			// simple-expr2 -> #
 			case Tag.END:
 			case Tag.THEN:
@@ -519,10 +621,12 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("+", "-", "END", "THEN", "EQ", "GE", "LE", "NOTEQ", "<", ">", ")", ";")), f.simpleExpr2);
 		}
+		return type;
 	}
 
 	// simbolo term
-	public static void Term() {
+	public static int Term() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// term -> 	factor-a term2
 			case Tag.NOT:
@@ -531,24 +635,70 @@ public class Sintatico {
 			case Tag.STRING:
 			case '(':
 			case '-':
-				FactorA();
-				Term2();
+				int typeFactorA = FactorA();
+				int typeTerm2 = Term2();
+
+				if (typeTerm2 == Type.EMPTY) {
+					type = Type.EMPTY;
+				} else if (typeFactorA == Type.INTEGER) {
+					if (typeTerm2 == Type.BOOLEAN) {
+						type = Type.BOOLEAN;
+					} else if (typeTerm2 == Type.INTEGER){
+						type = Type.INTEGER;
+					} else {
+						type = Type.ERROR;
+					}
+				} else if (typeFactorA == Type.BOOLEAN) {
+					if (typeTerm2 == Type.BOOLEAN || typeTerm2 == Type.INTEGER) {
+						type = Type.BOOLEAN;
+					} else {
+						type = Type.ERROR;
+					}
+				} else {
+					type = Type.ERROR;
+				}
+
 				break;	
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "STRING", "(", "-")), f.term);
 		}
+		return type;
 	}
 
 	// simbolo term2
-	public static void Term2() {
+	public static int Term2() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// term2 -> mulop factor-a term2
 			case Tag.AND:
 			case '*':
 			case '/':
-				Mulop();
-				FactorA();
-				Term2();
+				int typeMulop = Mulop();
+				int typeFactorA = FactorA();
+				int typeTerm2 = Term2();
+
+				if (typeMulop == Type.EMPTY) {
+					if (typeTerm2 == Type.EMPTY) {
+						type = Type.EMPTY;
+					} else if (typeFactorA == Type.INTEGER) {
+						if (typeTerm2 == Type.BOOLEAN) {
+							type = Type.BOOLEAN;
+						} else if (typeTerm2 == Type.INTEGER){
+							type = Type.INTEGER;
+						} else {
+							type = Type.ERROR;
+						}
+					} else if (typeFactorA == Type.BOOLEAN) {
+						if (typeTerm2 == Type.BOOLEAN || typeTerm2 == Type.INTEGER) {
+							type = Type.BOOLEAN;
+						} else {
+							type = Type.ERROR;
+						}
+					} else {
+						type = Type.ERROR;
+					}
+				}
+
 				break;
 			case Tag.END:
 			case Tag.THEN:
@@ -567,17 +717,19 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("AND", "*", "/", "END", "THEN", "OR", "EQ", "GE", "LE", "NOTEQ", "-", "+", ">", "<", ")", ";", "/", ")", ";")), f.term2);
 		}
+		return type;
 	}
 
 	// simbolo factor-a
-	public static void FactorA() {
+	public static int FactorA() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// factor-a -> factor
 			case Tag.NUM:
 			case Tag.ID:
 			case Tag.STRING:
 			case '(':
-				Factor();
+				type = Factor();
 				break;
 			// factor-a -> ! factor
 			case Tag.NOT:
@@ -592,33 +744,38 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NUM", "ID", "STRING", "NOT", "-")), f.factorA);
 		}
+		return type;
 	}
 
 	// simbolo factor
-	public static void Factor() {
+	public static int Factor() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// factor -> id
 			case Tag.ID:
+				type = ((Word)token).getType();
 				eat(Tag.ID);
 				break;
 			// factor -> constant
 			case Tag.NUM:
 			case Tag.STRING:
-				Constant();
+				type = Constant();
 				break;
 			// factor -> "(" expression ")"
 			case '(':
 				eat('(');
-				Expression();
+				type = Expression();
 				eat(')');
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("ID", "NUM", "STRING", "(")), f.factor);
 		}
+		return type;
 	}
 
 	// simbolo relop
-	public static void Relop() {
+	public static int Relop() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.EQ:
 				eat(Tag.EQ);
@@ -639,12 +796,15 @@ public class Sintatico {
 				eat(Tag.NOTEQ);
 				break;
 			default:
+				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<")), f.relop);
 		}
+		return type;
 	}
 
 	// simbolo addop
-	public static void Addop() {
+	public static int Addop() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case '+':
 				eat('+');
@@ -656,12 +816,15 @@ public class Sintatico {
 				eat(Tag.OR);
 				break;
 			default:
+				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("+", "-", "OR")), f.addop);
 		}
+		return type;
 	}
 
 	// simbolo mulop
-	public static void Mulop() {
+	public static int Mulop() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case '*':
 				eat('*');
@@ -673,22 +836,28 @@ public class Sintatico {
 				eat(Tag.AND);
 				break;
 			default:
+				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("*", "/", "AND")), f.mulop);
 		}
+		return type;
 	}
 
 	// simbolo constant
-	public static void Constant() {
+	public static int Constant() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.NUM:
+				type = Type.INTEGER;
 				eat(Tag.NUM);
 				break;
 			case Tag.STRING:
+				type = Type.STRING;
 				eat(Tag.STRING);
 				break;	
 			default:
 				error(new ArrayList<>(Arrays.asList("NUM", "STRING")), f.constant);
 		}
+		return type;
 	}
 
 	public static void main(String []args){

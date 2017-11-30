@@ -7,7 +7,7 @@ public class Lexer{
 	private char ch = ' ';
 	private FileReader file;
 
-	private Hashtable<String,Word> words = new Hashtable<String,Word>();
+	public Hashtable<String,Word> words = new Hashtable<String,Word>();
 	
 	private void reserve(Word w){
 		words.put(w.getLexeme(),w);

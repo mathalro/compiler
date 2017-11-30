@@ -25,6 +25,14 @@ public class Word extends Token{
 		return lexeme;	
 	}
 
+	public void setType(int type){
+		this.type = type;
+	}
+
+	public int getType(){
+		return type;
+	}
+
 	public String toString(){
 		return "" + lexeme;
 	}
