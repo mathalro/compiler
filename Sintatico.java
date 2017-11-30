@@ -52,6 +52,10 @@ public class Sintatico {
 		}
 	}
 
+	public static void semanticError() {
+		System.out.println("Erro semantico");
+	}
+
 	public static void advance() {
 		getToken();
 	}
@@ -65,33 +69,44 @@ public class Sintatico {
 		}
 	}
 
+	// metodo responsavel pela inclusao dos tipos de uma lista
+	// identificadores na tabela de simbolos
+	void includeType(int type, ArrayList<> idents) {
+		// 
+	}
+
 	// procedimento inicial S, raiz da arvore de derivacao
 	public static void S() {
-		Program();
+		int type = Program();
+		if (type != Type.EMPTY) semanticError();
 		eat(Tag.EOF);
 	}
 
 	// procedimento responsavel pelo tratamento do simbolo program
-	public static void Program() {
+	public static int Program() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.PRG:
 				eat(Tag.PRG);
-				OptDeclList();
-				StmtList();
+				type = Type.and(OptDeclList(), type);
+				type = Type.and(StmtList(), type);
 				eat(Tag.END);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("PRG")), f.program);
 				// fazer propagacao de erro aqui
 		}
+
+		return type;
 	}
 
 	// simbolo opt-decl-list
-	public static void OptDeclList() {
+	public static int OptDeclList() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.INT:
 			case Tag.STR:
-				DeclList();
+				type = Type.and(DeclList(), type);
 				break;
 			case Tag.IF:
 			case Tag.DO:
@@ -102,29 +117,33 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDeclList);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo decl-list
-	public static void DeclList() {
+	public static int DeclList() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.INT:
 			case Tag.STR:
-				Decl();
-				OptDecl();
+				type = Type.and(Decl(), type);
+				type = Type.and(OptDecl(), type);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.declList);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo opt-decl
-	public static void OptDecl() {
+	public static int OptDecl() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// opt-delc -> decl opt-decl
 			case Tag.INT:
 			case Tag.STR:
-				Decl();
-				OptDecl();
+				type = Type.and(Decl(), type);
+				type = Type.and(OptDecl(), type);
 				break;
 			case Tag.IF:
 			case Tag.DO:
@@ -135,70 +154,81 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDecl);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo decl
-	public static void Decl() {
+	public static int Decl() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// decl -> type ident-list ";"
 			case Tag.INT:
 			case Tag.STR:
-				Type();
-				IdentList();
+				includeType(Type(),	IdentList());
 				eat(';');
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.decl);
 		}
+		return type;
 	}
 
 	// tratamentodo simbolo idnet-list
-	public static void IdentList() {
+	public static int IdentList() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// ident-list -> id opt-id
 			case Tag.ID:
 				eat(Tag.ID);
-				OptIdentifier();
+				type = Type.and(OptIdentifier(), type);
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.identList);
 		}
+		return type;
 	}
 
 	// tratamentodo simbolo opt-identifier
-	public static void OptIdentifier() {
+	public static int OptIdentifier() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// opt-identifier -> , id opt-identifier
 			case ',':
 				eat(',');
 				eat(Tag.ID);
-				OptIdentifier();
+				type = Type.and(OptIdentifier(), type);
 				break;
 			case ';':
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList(",", ";")), f.optIdentifier);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo type
 	public static void Type() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// type -> int
 			case Tag.INT:
 				eat(Tag.INT);
+				type = Type.INTEGER;
 				break;
 			// type -> str
 			case Tag.STR:
 				eat(Tag.STR);
+				type = Type.STRING;
 				break;
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.type);
 		}
+		return type;
 	}
 	
 	// tratamento do simbolo stmt-list
-	public static void StmtList() {
+	public static int StmtList() {
+		int type = Type.EMPTY;
 		switch (token.tag) {
 			// stmt-list -> stmt opt-stmt
 			case Tag.IF:
@@ -212,6 +242,7 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmtList);
 		}
+		return type;
 	}
 
 	// tratamento do simbolo opt-stmt

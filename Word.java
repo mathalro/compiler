@@ -1,6 +1,7 @@
 public class Word extends Token{
 	private String lexeme = "";
-	
+	private int type = Type.EMPTY;
+
 	public static final Word and = new Word("&&", Tag.AND);
 	public static final Word or = new Word("||", Tag.OR);
 	public static final Word eq = new Word("==", Tag.EQ);
@@ -12,6 +13,12 @@ public class Word extends Token{
 	public Word(String s, int tag){
 		super(tag);
 		lexeme = s;
+	}
+
+	public Word(String s, int tag, int type){
+		super(tag);
+		lexeme = s;
+		type = type;
 	}
 
 	public String getLexeme(){

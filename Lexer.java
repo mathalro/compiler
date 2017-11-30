@@ -158,7 +158,7 @@ public class Lexer{
 				s += ch;
 			}	
 			s += '"';
-			Word w = new Word(s,Tag.STRING);
+			Word w = new Word(s,Tag.STRING,Type.STRING);
 			words.put(s,w);
 			return w;
 		}
