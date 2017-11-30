@@ -7,6 +7,7 @@ public class Sintatico {
 	public static Token token;
 	public static Lexer l;		
 	public static Follow f;
+	public static int tabs = 0;
 	/* Implementacao dos Procedimentos necessarios para o parser */
 
 	// procedimento responsavel por ler o proximo token da entrada
@@ -32,6 +33,13 @@ public class Sintatico {
 			} while (token.tag == Tag.OTH);
 		} catch(IOException e) {
 			System.out.format("Read error\n");
+		}
+	}
+
+	public static void printTabs() {
+		tabs++;
+		for(int i = 0; i < tabs; i++) {
+			System.out.print("|  ");
 		}
 	}
 
@@ -98,6 +106,8 @@ public class Sintatico {
 
 	// procedimento responsavel pelo tratamento do simbolo program
 	public static int Program() {
+		printTabs();
+		System.out.println("Program");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.PRG:
@@ -110,12 +120,14 @@ public class Sintatico {
 				error(new ArrayList<>(Arrays.asList("PRG")), f.program);
 				// fazer propagacao de erro aqui
 		}
-
+		tabs--;
 		return type;
 	}
 
 	// simbolo opt-decl-list
 	public static int OptDeclList() {
+		printTabs();
+		System.out.println("OptDeclList");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.INT:
@@ -131,11 +143,14 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDeclList);
 		}
+		tabs--;
 		return type;
 	}
 
 	// tratamento do simbolo decl-list
 	public static int DeclList() {
+		printTabs();
+		System.out.println("DeclList");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.INT:
@@ -146,11 +161,14 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.declList);
 		}
+		tabs--;
 		return type;
 	}
 
 	// tratamento do simbolo opt-decl
 	public static int OptDecl() {
+		printTabs();
+		System.out.println("OptDecl");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// opt-delc -> decl opt-decl
@@ -168,11 +186,14 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR", "IF", "DO", "SC", "PRT", "ID")), f.optDecl);
 		}
+		tabs--;
 		return type;
 	}
 
 	// tratamento do simbolo decl
 	public static int Decl() {
+		printTabs();
+		System.out.println("Decl");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// decl -> type ident-list ";"
@@ -184,13 +205,15 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.decl);
 		}
+		tabs--;
 		return type;
 	}
 
 	// tratamentodo simbolo idnet-list
 	public static ArrayList<String> IdentList() {
-		ArrayList<String> idList = new ArrayList<String>();
+		printTabs();
 		System.out.println("IdentList");
+		ArrayList<String> idList = new ArrayList<String>();
 		switch (token.tag) {
 			// ident-list -> id opt-id
 			case Tag.ID:
@@ -201,13 +224,14 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.identList);
 		}
-		return idList;
+		tabs--; return idList;
 	}
 
 	// tratamentodo simbolo opt-identifier
 	public static ArrayList<String> OptIdentifier() {
-		ArrayList<String> idList = new ArrayList<String>();
+		printTabs();
 		System.out.println("OptIdentifier");
+		ArrayList<String> idList = new ArrayList<String>();
 		switch (token.tag) {
 			// opt-identifier -> , id opt-identifier
 			case ',':
@@ -221,11 +245,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList(",", ";")), f.optIdentifier);
 		}
-		return idList;
+		tabs--; return idList;
 	}
 
 	// tratamento do simbolo type
 	public static int Type() {
+		printTabs();
+		System.out.println("Type");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// type -> int
@@ -241,11 +267,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("INT", "STR")), f.type);
 		}
-		return type;
+		tabs--; return type;
 	}
 	
 	// tratamento do simbolo stmt-list
 	public static int StmtList() {
+		printTabs();
+		System.out.println("StmtList");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// stmt-list -> stmt opt-stmt
@@ -260,11 +288,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmtList);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// tratamento do simbolo opt-stmt
 	public static int OptStmt() {
+		printTabs();
+		System.out.println("OptStmt");
 		int type = Type.EMPTY;  
 		switch (token.tag) {
 			// opt-stmt -> stmt opt-stmt
@@ -284,11 +314,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID", "END", "WH")), f.optStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// tratamento do simbolo stmt
 	public static int Stmt() {
+		printTabs();
+		System.out.println("Stmt");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.IF:		// stmt -> assign-stmt
@@ -312,11 +344,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF", "DO", "SC", "PRT", "ID")), f.stmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// tratamento do simbolo assign-stmt
 	public static int AssignStmt() {
+		printTabs();
+		System.out.println("AssignStmt");
 		int type = Type.EMPTY;
 		Token aux;
 		switch (token.tag) {
@@ -330,11 +364,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.assignStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// tratamento do simbolo if-stmt
 	public static int IfStmt() {
+		printTabs();
+		System.out.println("IfStmt");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// if-stmt -> if condition then stmt-list if-stmt2
@@ -351,11 +387,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("IF")), f.ifStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// tratamento do simbolo if-stmt-2
 	public static int IfStmt2() {
+		printTabs();
+		System.out.println("IfStmt2");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// if-stmt2 -> end
@@ -371,11 +409,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("END", "ELSE")), f.ifStmt2);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo condiion
 	public static int Condition() {
+		printTabs();
+		System.out.println("Condition");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// condition -> expression
@@ -390,11 +430,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "STRING", "ID", "-", "(")), f.condition);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo while-stmt
 	public static int WhileStmt() {
+		printTabs();
+		System.out.println("WhileStmt");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// while-stmt -> do stmt-list stmt-sufix
@@ -405,11 +447,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("DO")), f.whileStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo stmt-sufix
 	public static int StmtSufix() {
+		printTabs();
+		System.out.println("StmtSufix");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// stmt-sufix -> while condition end
@@ -422,11 +466,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("WH")), f.stmtSufix);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo read-stmt
 	public static int ReadStmt() {
+		printTabs();
+		System.out.println("ReadStmt");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// read-stmt -> scan "(" identifier ")"
@@ -439,11 +485,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("SC")), f.readStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo write-stmt
 	public static int WriteStmt() {
+		printTabs();
+		System.out.println("WriteStmt");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// write-stmt -> print "(" writable ")"
@@ -456,11 +504,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("PRT")), f.writeStmt);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo writable
 	public static int Writable() {
+		printTabs();
+		System.out.println("Writable");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// writable -> simple-expr
@@ -477,11 +527,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.writable);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo expression
 	public static int Expression() {
+		printTabs();
+		System.out.println("Expression");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// expression -> simple-expression expression2
@@ -502,11 +554,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.expression);			
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo expression2
 	public static int Expression2() {
+		printTabs();
+		System.out.println("Expression2");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// expression2 -> relop simple-expr
@@ -531,11 +585,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<", ")", "END", "THEN")), f.expression2);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo simple-expr
 	public static int SimpleExpr() {
+		printTabs();
+		System.out.println("SimpleExpr");
 		int type = Type.EMPTY;
 		// simple-expr -> temr simple-expr2
 		switch (token.tag) {
@@ -574,11 +630,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.simpleExpr);			
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo simple-expr2
 	public static int SimpleExpr2() {
+		printTabs();
+		System.out.println("SimpleExpr2");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// simple-expr2 -> addop term simple-expr2
@@ -630,11 +688,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("+", "-", "END", "THEN", "EQ", "GE", "LE", "NOTEQ", "<", ">", ")", ";")), f.simpleExpr2);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo term
 	public static int Term() {
+		printTabs();
+		System.out.println("Term");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// term -> 	factor-a term2
@@ -671,11 +731,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "STRING", "(", "-")), f.term);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo term2
 	public static int Term2() {
+		printTabs();
+		System.out.println("Term2");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// term2 -> mulop factor-a term2
@@ -726,11 +788,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("AND", "*", "/", "END", "THEN", "OR", "EQ", "GE", "LE", "NOTEQ", "-", "+", ">", "<", ")", ";", "/", ")", ";")), f.term2);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo factor-a
 	public static int FactorA() {
+		printTabs();
+		System.out.println("FactorA");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// factor-a -> factor
@@ -753,11 +817,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NUM", "ID", "STRING", "NOT", "-")), f.factorA);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo factor
 	public static int Factor() {
+		printTabs();
+		System.out.println("Factor");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			// factor -> id
@@ -779,11 +845,13 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("ID", "NUM", "STRING", "(")), f.factor);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo relop
 	public static int Relop() {
+		printTabs();
+		System.out.println("Relop");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.EQ:
@@ -808,11 +876,13 @@ public class Sintatico {
 				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("EQ", "GE", "LE", "NOTEQ", ">", "<")), f.relop);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo addop
 	public static int Addop() {
+		printTabs();
+		System.out.println("Addop");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case '+':
@@ -828,11 +898,13 @@ public class Sintatico {
 				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("+", "-", "OR")), f.addop);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo mulop
 	public static int Mulop() {
+		printTabs();
+		System.out.println("Mulop");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case '*':
@@ -848,11 +920,13 @@ public class Sintatico {
 				type = Type.ERROR;
 				error(new ArrayList<>(Arrays.asList("*", "/", "AND")), f.mulop);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	// simbolo constant
 	public static int Constant() {
+		printTabs();
+		System.out.println("Constant");
 		int type = Type.EMPTY;
 		switch (token.tag) {
 			case Tag.NUM:
@@ -866,7 +940,7 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NUM", "STRING")), f.constant);
 		}
-		return type;
+		tabs--; return type;
 	}
 
 	public static void main(String []args){
