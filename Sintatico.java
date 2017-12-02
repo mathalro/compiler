@@ -5,9 +5,10 @@ import java.util.Arrays;
 
 public class Sintatico {
 	public static Token token;
-	public static Lexer l;		
+	public static Lexer l;
 	public static Follow f;
 	public static int tabs = 0;
+	public static Error semanticError;
 	/* Implementacao dos Procedimentos necessarios para o parser */
 
 	// procedimento responsavel por ler o proximo token da entrada
@@ -60,10 +61,6 @@ public class Sintatico {
 		}
 	}
 
-	public static void semanticError() {
-		System.out.println("Erro semantico");
-	}
-
 	public static void advance() {
 		getToken();
 	}
@@ -82,8 +79,14 @@ public class Sintatico {
 	public static void includeType(int type, ArrayList<String> idents) {
 		for(String s : idents){
 			Word w = l.words.get(s);
-			w.setType(type);
-			l.words.put(s,w);
+//			System.out.println(w.getLexeme() + w.getType());
+			if(w.getType() != Type.EMPTY){
+				printTabs();
+				semanticError.declarationError(w.getLexeme());
+			}else{
+				w.setType(type);
+				l.words.put(s,w);
+			}
 		} 
 	}
 
@@ -96,7 +99,7 @@ public class Sintatico {
 	public static void S() {
 		try {
 			int type = Program();
-			if (type != Type.EMPTY) semanticError();
+			if (type != Type.EMPTY);
 			eat(Tag.EOF);
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -357,6 +360,8 @@ public class Sintatico {
 			// assign-stmt -> id = simple-expr
 			case Tag.ID:
 				aux = token;
+				//System.out.println("TIPO DE "+((Word)aux).getLexeme()+" : "+((Word)aux).getType());
+				semanticError.assignError(aux);
 				eat(Tag.ID);
 				eat('=');
 				type = Type.and(SimpleExpr(),getType(((Word)aux).getLexeme()));
@@ -364,6 +369,7 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("ID")), f.assignStmt);
 		}
+		semanticError.assignError(type);
 		tabs--; return type;
 	}
 
@@ -603,6 +609,7 @@ public class Sintatico {
 			case Tag.STRING:
 
 				int typeTerm = Term();
+				//System.out.println("TIPO DE TERM "+typeTerm);
 				int typeSimple = SimpleExpr2();
 				if (typeSimple == Type.EMPTY) {
 					type = typeTerm;
@@ -630,6 +637,7 @@ public class Sintatico {
 			default:
 				error(new ArrayList<>(Arrays.asList("NOT", "NUM", "ID", "-", "(", "STRING")), f.simpleExpr);			
 		}
+		semanticError.simpleExprError(type);
 		tabs--; return type;
 	}
 
@@ -705,10 +713,11 @@ public class Sintatico {
 			case '(':
 			case '-':
 				int typeFactorA = FactorA();
+				//System.out.println("TIPO DE FACTOR A "+typeFactorA);
 				int typeTerm2 = Term2();
 
 				if (typeTerm2 == Type.EMPTY) {
-					type = Type.EMPTY;
+					type = typeFactorA;
 				} else if (typeFactorA == Type.INTEGER) {
 					if (typeTerm2 == Type.BOOLEAN) {
 						type = Type.BOOLEAN;
@@ -803,6 +812,7 @@ public class Sintatico {
 			case Tag.STRING:
 			case '(':
 				type = Factor();
+				//System.out.println("TIPO DE FACTOR "+type);
 				break;
 			// factor-a -> ! factor
 			case Tag.NOT:
@@ -825,10 +835,12 @@ public class Sintatico {
 		printTabs();
 		System.out.println("Factor");
 		int type = Type.EMPTY;
+		Token aux;
 		switch (token.tag) {
 			// factor -> id
 			case Tag.ID:
 				type = ((Word)token).getType();
+				semanticError.factorError(type, token);
 				eat(Tag.ID);
 				break;
 			// factor -> constant
@@ -954,7 +966,7 @@ public class Sintatico {
 
 		filename = args[0];	
 		try {
-					
+			semanticError = new Error();
 			l = new Lexer(filename);
 			f = new Follow();
 			getToken();
